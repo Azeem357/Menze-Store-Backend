@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from datetime import datetime, timedelta
+from rest_framework.permissions import AllowAny
 
 from .models import Product, Order, OrderItem
 from .serializers import (
@@ -85,7 +86,11 @@ class OrderDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).prefetch_related('items__product')
 
+from rest_framework.permissions import AllowAny
+
 class OrderSyncView(APIView):
+    permission_classes = [AllowAny]  # add this line
+    
     def get(self, request):
         six_months_ago = datetime.now() - timedelta(days=180)
         orders = Order.objects.filter(
