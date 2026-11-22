@@ -2,8 +2,9 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from datetime import datetime, timedelta
 
-from .models import Product, Order
+from .models import Product, Order, OrderItem
 from .serializers import (
     RegisterSerializer,
     UserSerializer,
@@ -83,3 +84,30 @@ class OrderDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user).prefetch_related('items__product')
+
+class OrderSyncView(APIView):
+    def get(self, request):
+        six_months_ago = datetime.now() - timedelta(days=180)
+        orders = Order.objects.filter(
+            created_at__gte=six_months_ago,
+            status='delivered'
+        ).prefetch_related('items__product')
+        
+        data = []
+        for order in orders:
+            data.append({
+                'order_id': order.id,
+                'created_at': order.created_at.isoformat(),
+                'total': str(order.total_price),
+                'status': order.status,
+                'items': [
+                    {
+                        'product_id': item.product.id,
+                        'product_name': item.product.name,
+                        'quantity': item.quantity,
+                        'price': str(item.product.price),
+                    }
+                    for item in order.items.all()
+                ]
+            })
+        return Response(data)
