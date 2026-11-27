@@ -2,8 +2,9 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from datetime import datetime, timedelta
+from datetime import timedelta
 from rest_framework.permissions import AllowAny
+from django.utils import timezone
 
 from .models import Product, Order, OrderItem
 from .serializers import (
@@ -89,10 +90,10 @@ class OrderDetailView(generics.RetrieveAPIView):
 from rest_framework.permissions import AllowAny
 
 class OrderSyncView(APIView):
-    permission_classes = [AllowAny]  # add this line
+    permission_classes = [AllowAny]
     
     def get(self, request):
-        six_months_ago = datetime.now() - timedelta(days=180)
+        six_months_ago = timezone.now() - timedelta(days=180)
         orders = Order.objects.filter(
             created_at__gte=six_months_ago,
             status='delivered'
@@ -107,10 +108,10 @@ class OrderSyncView(APIView):
                 'status': order.status,
                 'items': [
                     {
-                        'product_id': item.product.id,
+                        'product_id': item.product_id,
                         'product_name': item.product.name,
                         'quantity': item.quantity,
-                        'price': str(item.product.price),
+                        'price': str(item.price),
                     }
                     for item in order.items.all()
                 ]
